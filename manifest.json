@@ -1,0 +1,32 @@
+{
+  "manifest_version": 2,
+  "name": "DegweeWorks",
+  "description": "This extension will fuck DegreeWorks up",
+  "version": "1.0",
+  "browser_action": {
+    "default_icon": "phelps.png",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://degreeworks.uncc.edu/DashboardServlet/*"
+      ],
+      "js": [
+        "popup.js"
+      ]
+    }
+  ],
+  "commands": {
+    "_execute_browser_action": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+F",
+        "mac": "Command+Shift+F"
+      },
+      "description": "Opens html"
+    }
+  },
+  "permissions": [
+    "https://degreeworks.uncc.edu/DashboardServlet/"
+  ]
+}
