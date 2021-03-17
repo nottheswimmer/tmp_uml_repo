@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "DegweeWorks",
-  "description": "This extension will fuck DegreeWorks up",
+  "description": "This extension will work with DegreeWorks to generate schedules",
   "version": "1.0",
   "browser_action": {
     "default_icon": "phelps.png",
