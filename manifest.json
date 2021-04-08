@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "DegweeWorks",
-  "description": "This extension will fuck DegreeWorks up",
+  "description": "This extension will heck DegreeWorks up",
   "version": "1.0",
   "browser_action": {
     "default_icon": "phelps.png",
@@ -13,8 +13,11 @@
         "https://degreeworks.uncc.edu/DashboardServlet/*"
       ],
       "js": [
+        "jquery-2.2.4.min.js",
         "popup.js"
-      ]
+      ],
+      "run_at": "document_start",
+      "all_frames": true
     }
   ],
   "commands": {
@@ -29,7 +32,9 @@
   "permissions": [
     "activeTab",
     "webRequest",
-    "https://degreeworks.uncc.edu/DashboardServlet/"
+    "https://degreeworks.uncc.edu/DashboardServlet/",
+    "executeScript",
+    "tabs"
   ],
   "content_security_policy": "script-src-elem 'self' https://code.jquery.com/jquery-3.5.1.min.js; object-src 'self'; script-src 'self' https://code.jquery.com/jquery-3.5.1.min.js"
 }
