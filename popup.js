@@ -3,7 +3,7 @@ $(function() {
 
     /**
      * Instructions for usage:
-     * 1. Install the userscript (may need a plugin like TamperMonkey for Chrome)
+     * 1. Install the extension
      * 2. Go to https://degreeworks.uncc.edu/DashboardServlet/
      * 3. Set minimum and maximum courses as desired
      * 4. Click "Generate possible semesters"
