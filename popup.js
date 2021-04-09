@@ -16,7 +16,7 @@ $(function() {
      * Currently just fetches and prints degree information.
      */
     function main() {
-        console.log(`Main ran in ${window}`)
+        if (debug) console.log(`Main ran in ${window.name}`)
         // Whenever this is ran, an unload event (i.e. when the user loads a whatIf report)
         // triggers the collection of data needed to do a query for course information.
         // This isn't a listener because getting listeners to work inside iframes is hard.
@@ -30,7 +30,7 @@ $(function() {
         setInterval(setupWhatIfDataListener, 100);
 
         if (window.name === "frLeft") {
-            addButton(`Generate possible semesters`, showPossibleSemesters)
+            addButton(`Generate possible semesters`, showPossibleSemesters, null, "genPossible")
             addNumberField('Min courses/semester', 'minCourses', 4)
             addNumberField('Max courses/semester', 'maxCourses', 4);
         }
@@ -332,7 +332,7 @@ $(function() {
     }
 
     function visitClassesApplied(classesApplied) {
-        console.log("ClassesApplied", classesApplied);
+        if (debug) console.log("ClassesApplied", classesApplied);
         let results = [];
         $.each($(classesApplied).children("Course"), function () {
             results.push(visit(this))
@@ -435,9 +435,13 @@ $(function() {
     }
 
     /** Code below here controls user interaction **/
-    function addButton(text, onclick, cssObj) {
+    function addButton(text, onclick, cssObj, id) {
         cssObj = cssObj || {bottom: '7%', left: '4%', 'z-index': 3}
         let button = document.createElement('button'), btnStyle = button.style
+        button.id = id
+        if (document.getElementById(id)) {
+            return
+        }
         document.body.appendChild(button)
         button.innerHTML = text
         button.onclick = onclick
@@ -446,6 +450,9 @@ $(function() {
     }
 
     function addNumberField(labelText, id, value, cssObj) {
+        if (document.getElementById(id)) {
+            return
+        }
         cssObj = cssObj || {bottom: '7%', left: '4%', 'z-index': 3}
         let labelField = document.createElement('label'), labelStyle = labelField.style
         let numberField = document.createElement('input'), fieldStyle = numberField.style
@@ -471,7 +478,7 @@ $(function() {
         }
         document.body.appendChild(select)
 
-        return button
+        return select
     }
 
 
