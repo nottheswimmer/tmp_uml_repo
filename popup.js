@@ -9,7 +9,7 @@ $(function() {
      * 4. Click "Generate possible semesters"
      * 5. View possible semesters by clicking the dropdown and scrolling
      */
-// Add an event listener to load the main function when jQuery is ready
+    // Add an event listener to load the main function when jQuery is ready
     window.addEventListener("load", main);
 
     /**
@@ -30,7 +30,7 @@ $(function() {
         setInterval(setupWhatIfDataListener, 100);
 
         if (window.name === "frLeft") {
-            addButton(`Generate possible semesters`, showPossibleSemesters, null, "genPossible")
+            addButton(`Generate possible semesters`, getDegreeInfo, null, "genPossible")
             addNumberField('Min courses/semester', 'minCourses', 4)
             addNumberField('Max courses/semester', 'maxCourses', 4);
         }
@@ -78,18 +78,15 @@ $(function() {
         var settings = {
             "method": "POST",
             "timeout": 0,
-            "async": false,
+            // "async": false,
             "cache": false,
             "data": data,
             "dataType": "xml"
         };
 
-        let response = null;
         $.ajax(settings).done(function (data) {
-            response = data;
+            showPossibleSemesters(visit(data))
         });
-
-        return response;
     }
 
     function visit(node) {
@@ -371,16 +368,6 @@ $(function() {
         return booleanEvaluation.innerHTML === "True";
     }
 
-    function getPossibleSemesterData() {
-        // Get the degree info and traverse it
-        return visit(getDegreeInfo());
-    }
-
-    /** This is how you can access the raw XML (if we want to parse it externally) **/
-    function getDegreeInfoRawXML() {
-        return new XMLSerializer().serializeToString(getDegreeInfo())
-    }
-
     /** Generating semesters **/
     function generateSemOptions(rules, max_classes, min_classes) {
         var prvOptions, prvOptionsIdx, prvOption, ruleIdx, rule, classOptions, classOptionsIdx, optionIdx, option;
@@ -482,9 +469,8 @@ $(function() {
     }
 
 
-    function showPossibleSemesters() {
+    function showPossibleSemesters(possibleSemesterData) {
         /** Unfinished, currently just alerts **/
-        let possibleSemesterData = getPossibleSemesterData();
         let semData = generateSemOptions(possibleSemesterData);
         if (window.name === "frLeft") {
             addResults(semData, "semResult")
