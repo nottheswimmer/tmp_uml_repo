@@ -374,20 +374,47 @@ $(function () {
     }
 
     /** Generating semesters **/
-    function generateSemOptions(rules, max_classes, min_classes) {
+    function generateSemOptions(rules, max_classes, min_classes, previous_planned_semester) {
         var prvOptions, prvOptionsIdx, prvOption, ruleIdx, rule, classOptions, classOptionsIdx, optionIdx, option;
         max_classes = max_classes === void 0 ? parseInt($("#maxCourses")[0].value) : max_classes;
         min_classes = min_classes === void 0 ? parseInt($("#minCourses")[0].value) : min_classes;
+        previous_planned_semester = previous_planned_semester === void [] ? [] : previous_planned_semester;
+
+
         var _, options, prev_courses, classes_per_rule, new_classes_per_rule, course,
             new_courses, results, x, y;
+
+        // Before we begin, update the rules with the previously planned semester
+        for (ruleIdx = 0; ruleIdx < rules.length; ruleIdx++) {
+            rule = rules[ruleIdx];
+            classOptions = rule["classOptions"];
+            for (classOptionsIdx = classOptions.length - 1; classOptionsIdx >= 0; classOptionsIdx--) {
+                course = classOptions[classOptionsIdx];
+                let plannedIdx = previous_planned_semester.indexOf(course);
+                if (plannedIdx >= 0) {
+                    if (rule["numClassesNeeded"] > 0) {
+                        rule["numClassesNeeded"] -= 1;
+                    }
+                    classOptions.splice(classOptionsIdx, 1)
+                }
+            }
+        }
+
+        // Then, we start off with the null set: A semester with no enrollments
         options = [[[], new Array(rules.length).fill(0)]]
         let trulySeen = new Set();
+
+        // Then, for each class we want to have...
         for (_ = 0; _ < max_classes; _++) {
             prvOptions = [...options]
+
+            // We consider all ways to add one course to the previous sets
             for (prvOptionsIdx = 0; prvOptionsIdx < prvOptions.length; prvOptionsIdx++) {
                 prvOption = prvOptions[prvOptionsIdx];
                 prev_courses = prvOption[0];
                 classes_per_rule = prvOption[1];
+
+                // By considering each rule
                 for (ruleIdx = 0; ruleIdx < rules.length; ruleIdx++) {
                     rule = rules[ruleIdx];
                     if (classes_per_rule[ruleIdx] >= rule["numClassesNeeded"]) {
@@ -396,8 +423,11 @@ $(function () {
                     new_classes_per_rule = [...classes_per_rule];
                     ++new_classes_per_rule[ruleIdx];
                     classOptions = rule["classOptions"];
+
+                    // ... and the courses that can be added from them
                     for (classOptionsIdx = 0; classOptionsIdx < classOptions.length; classOptionsIdx++) {
                         course = classOptions[classOptionsIdx];
+
                         if (!(prev_courses.indexOf(course) >= 0) || course.includes("@")) {
                             new_courses = [...prev_courses, course];
                             new_courses.sort();
