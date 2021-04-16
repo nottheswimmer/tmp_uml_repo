@@ -31,7 +31,7 @@ $(function () {
         // This means the app would break if the user managed to get through the
         // DegreeWorks WhatIf form in a 10th of a second.
         setInterval(setupWhatIfDataListener, 100);
-        if(window.name == "frBody") {
+        if (window.name == "frBody") {
             addModal();
         }
         if (window.name === "frLeft") {
@@ -63,6 +63,7 @@ $(function () {
      * @returns XMLDocument
      */
     function getDegreeInfo() {
+        console.log("running");
         var data = {};
         $.each($(top.frControl.frmCallScript).serializeArray(), function () {
             data[this.name] = this.value;
@@ -326,7 +327,7 @@ $(function () {
         if (results.length === 0 || classesRemaining === 0) {
             return [];
         }
-        return { numClassesNeeded: classesRemaining, classOptions: results, ruleLabel: ruleLabel };
+        return {numClassesNeeded: classesRemaining, classOptions: results, ruleLabel: ruleLabel};
     }
 
     function visitQualifier(qualifier) {
@@ -458,9 +459,11 @@ $(function () {
 
     /** Code below here controls user interaction **/
     function addButton(text, onclick, cssObj, id) {
-        cssObj = cssObj || { bottom: '7%', left: '4%', 'z-index': 3 }
+        cssObj = cssObj || {bottom: '7%', left: '4%', 'z-index': 3}
         let button = document.createElement('button'), btnStyle = button.style
         button.id = id
+        button.setAttribute("data-toggle", "modal")
+        button.setAttribute("data-target", "#exampleModal")
         if (document.getElementById(id)) {
             return
         }
@@ -475,7 +478,7 @@ $(function () {
         if (document.getElementById(id)) {
             return
         }
-        cssObj = cssObj || { bottom: '7%', left: '4%', 'z-index': 3 }
+        cssObj = cssObj || {bottom: '7%', left: '4%', 'z-index': 3}
         let labelField = document.createElement('label'), labelStyle = labelField.style
         let numberField = document.createElement('input'), fieldStyle = numberField.style
         numberField.type = "number"
@@ -490,81 +493,50 @@ $(function () {
     }
 
     function addResults(optionTexts, id) {
-        $("#" + id).remove()
-        let select = document.createElement('select');
-        select.id = id;
+        $("#" + id).remove();
+        let select = parent.frames['frBody'].document.getElementById("menu");
+        //select.id = id;
         for (let i = 0; i < optionTexts.length; i++) {
-            var option = document.createElement("option");
-            option.text = optionTexts[i].join();
-            select.add(option);
+            var option = document.createElement("a");
+            option.innerHTML = optionTexts[i].join();
+            option.setAttribute("class", "dropdown-item");
+            select.appendChild(option);
         }
-        document.body.appendChild(select)
-
+        //parent.frames['frBody'].document.getElementById("modal-body").appendChild(select);
+        
         return select
     }
 
     function addModal() {
-        if (document.getElementById('myModal')) {
+        if (document.getElementById('exampleModal')) {
             return
         }
         var html = `
-        <style>
-        /* The Modal (background) */
-            .modalWrap {
-                display: none; /* Hidden by default */
-                position: fixed; /* Stay in place */
-                z-index: 1; /* Sit on top */
-                left: 0;
-                top: 0;
-                width: 100%; /* Full width */
-                height: 100%; /* Full height */
-                overflow: auto; /* Enable scroll if needed */
-                background-color: rgb(0,0,0); /* Fallback color */
-                background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
-            }
-            /* Modal Content/Box */
-            .modal-content {
-            background-color: #fefefe;
-            margin: 15% auto; /* 15% from the top and centered */
-            padding: 20px;
-            border: 1px solid #888;
-            width: 80%; /* Could be more or less, depending on screen size */
-            }
-
-            /* The Close Button */
-            .close {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-            }
-
-            .close:hover,
-            .close:focus {
-            color: black;
-            text-decoration: none;
-            cursor: pointer;
-            }
-        </style>
             <!-- The Modal -->
-            <div id="myModal" class="modalWrap">
-            <div class="modal">
+            <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
               <!-- Modal content -->
-              <div class="modal-content">
-                <span class="close">&times;</span>
-                <h2>Results<h2>
-                <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                Dropdown button
+              <div class="modal-content"  style="background:#99EDC3">
+              <div class="modal-header">
+              <h2 class="modal-title">Results</h2>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
                 </button>
-                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                    <a class="dropdown-item" href="#">Action</a>
-                    <a class="dropdown-item" href="#">Another action</a>
-                    <a class="dropdown-item" href="#">Something else here</a>
                 </div>
-                <p>min classes: 3 && max classes: 4</p>
-                <button type="button">Next</button>
+                <div id="modal-body" class="modal-body">
+                    <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    Dropdown button
+                    </button>
+                    <div id="menu" class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <p style="display:inline">min classes: 3, max classes: 4</p>
+                    <button type="button" class="btn btn-primary" style="display:inline">Next</button>
+                </div>
               </div>
               </div>
+            </div>
             </div>
             `;
         let div = document.createElement('div');
@@ -572,7 +544,7 @@ $(function () {
         div.innerHTML = html;
 
         // Get the modal
-        modal = document.getElementById("myModal");
+        modal = document.getElementById("exampleModal");
 
         // When the user clicks anywhere outside of the modal, close it
         window.onclick = function (event) {
@@ -588,12 +560,7 @@ $(function () {
         if (window.name === "frLeft") {
             addResults(semData, "semResult")
         }
-        modal = parent.frames['frBody'].document.getElementById("myModal");
-        var span =  parent.frames['frBody'].document.getElementsByClassName("close")[0];
-        // When the user clicks on <span> (x), close the modal
-        span.onclick = function () {
-            modal.style.display = "none";
-            }
-        modal.style.display = "block";
+        modal = parent.frames['frBody'].document.getElementById("exampleModal");
+        $(modal).modal()
     }
 })
