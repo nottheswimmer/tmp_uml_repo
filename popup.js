@@ -1,5 +1,8 @@
-$(function() {
+$(function () {
     let debug = true;
+
+    //global var for modal to call outside
+    var modal = null;
 
     /**
      * Instructions for usage:
@@ -28,7 +31,9 @@ $(function() {
         // This means the app would break if the user managed to get through the
         // DegreeWorks WhatIf form in a 10th of a second.
         setInterval(setupWhatIfDataListener, 100);
-
+        if(window.name == "frBody") {
+            addModal();
+        }
         if (window.name === "frLeft") {
             addButton(`Generate possible semesters`, getDegreeInfo, null, "genPossible")
             addNumberField('Min courses/semester', 'minCourses', 4)
@@ -321,7 +326,7 @@ $(function() {
         if (results.length === 0 || classesRemaining === 0) {
             return [];
         }
-        return {numClassesNeeded: classesRemaining, classOptions: results, ruleLabel: ruleLabel};
+        return { numClassesNeeded: classesRemaining, classOptions: results, ruleLabel: ruleLabel };
     }
 
     function visitQualifier(qualifier) {
@@ -423,7 +428,7 @@ $(function() {
 
     /** Code below here controls user interaction **/
     function addButton(text, onclick, cssObj, id) {
-        cssObj = cssObj || {bottom: '7%', left: '4%', 'z-index': 3}
+        cssObj = cssObj || { bottom: '7%', left: '4%', 'z-index': 3 }
         let button = document.createElement('button'), btnStyle = button.style
         button.id = id
         if (document.getElementById(id)) {
@@ -440,7 +445,7 @@ $(function() {
         if (document.getElementById(id)) {
             return
         }
-        cssObj = cssObj || {bottom: '7%', left: '4%', 'z-index': 3}
+        cssObj = cssObj || { bottom: '7%', left: '4%', 'z-index': 3 }
         let labelField = document.createElement('label'), labelStyle = labelField.style
         let numberField = document.createElement('input'), fieldStyle = numberField.style
         numberField.type = "number"
@@ -468,6 +473,84 @@ $(function() {
         return select
     }
 
+    function addModal() {
+        if (document.getElementById('myModal')) {
+            return
+        }
+        var html = `
+        <style>
+        /* The Modal (background) */
+            .modalWrap {
+                display: none; /* Hidden by default */
+                position: fixed; /* Stay in place */
+                z-index: 1; /* Sit on top */
+                left: 0;
+                top: 0;
+                width: 100%; /* Full width */
+                height: 100%; /* Full height */
+                overflow: auto; /* Enable scroll if needed */
+                background-color: rgb(0,0,0); /* Fallback color */
+                background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+            }
+            /* Modal Content/Box */
+            .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto; /* 15% from the top and centered */
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%; /* Could be more or less, depending on screen size */
+            }
+
+            /* The Close Button */
+            .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            }
+
+            .close:hover,
+            .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+            }
+        </style>
+            <!-- The Modal -->
+            <div id="myModal" class="modalWrap">
+            <div class="modal">
+              <!-- Modal content -->
+              <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>Results<h2>
+                <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                Dropdown button
+                </button>
+                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                    <a class="dropdown-item" href="#">Action</a>
+                    <a class="dropdown-item" href="#">Another action</a>
+                    <a class="dropdown-item" href="#">Something else here</a>
+                </div>
+                <p>min classes: 3 && max classes: 4</p>
+                <button type="button">Next</button>
+              </div>
+              </div>
+            </div>
+            `;
+        let div = document.createElement('div');
+        document.body.appendChild(div);
+        div.innerHTML = html;
+
+        // Get the modal
+        modal = document.getElementById("myModal");
+
+        // When the user clicks anywhere outside of the modal, close it
+        window.onclick = function (event) {
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }
+    }
 
     function showPossibleSemesters(possibleSemesterData) {
         /** Unfinished, currently just alerts **/
@@ -475,5 +558,12 @@ $(function() {
         if (window.name === "frLeft") {
             addResults(semData, "semResult")
         }
+        modal = parent.frames['frBody'].document.getElementById("myModal");
+        var span =  parent.frames['frBody'].document.getElementsByClassName("close")[0];
+        // When the user clicks on <span> (x), close the modal
+        span.onclick = function () {
+            modal.style.display = "none";
+            }
+        modal.style.display = "block";
     }
 })
