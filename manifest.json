@@ -14,11 +14,11 @@
       ],
       "js": [
         "vendor/jquery-2.2.4.min.js",
-        "vendor/bootstrap-4.3.1-dist/js/bootstrap.bundle.min.js",
+        "vendor/bootstrap-5.0.0-beta3-dist/js/bootstrap.bundle.min.js",
         "popup.js"
       ],
       "css": [
-        "vendor/bootstrap-4.3.1-dist/css/bootstrap.min.css",
+        "vendor/bootstrap-5.0.0-beta3-dist/css/bootstrap.min.css",
         "popup.css"
       ],
       "run_at": "document_start",

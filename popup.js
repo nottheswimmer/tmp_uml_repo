@@ -32,7 +32,8 @@ $(function () {
         // This means the app would break if the user managed to get through the
         // DegreeWorks WhatIf form in a 10th of a second.
         setInterval(setupWhatIfDataListener, 100);
-        if (window.name == "frBody") {
+        console.log(window.name)
+        if (window.name === "frBody") {
             addModal();
         }
         if (window.name === "frLeft") {
@@ -95,7 +96,7 @@ $(function () {
         $(".loader").fadeIn()
         $("#genPossible").prop("disabled", true)
         $(top.modal).find("#modalNext").prop("disabled", false)
-        $(top.modal).find("#semesters").find(".form-group")[0].innerHTML = `<select class="custom-select semester" required></select>`
+        $(top.modal).find("#semesters").find(".form-group")[0].innerHTML = getNewDataList()
         $(top.modal).find(".graduation-text").hide()
         $.ajax(settings).done(function (data) {
             showPossibleSemesters(visit(data));
@@ -389,7 +390,7 @@ $(function () {
         // max_classes = max_classes === void 0 ? parseInt($("#maxCourses")[0].value) : max_classes;
         // min_classes = min_classes === void 0 ? parseInt($("#minCourses")[0].value) : min_classes;
         let min_classes = 1;
-        let max_classes = 4;
+        let max_classes = 1;
         previous_planned_semester = previous_planned_semester === void [] ? [] : previous_planned_semester;
 
 
@@ -508,7 +509,19 @@ $(function () {
 
     function getLatestSemesterSelect() {
         let semesters = $(top.modal).find("#semesters").find(".semester");
-        return semesters[semesters.length-1];
+        return semesters[semesters.length - 1];
+    }
+
+    function uuidv4() {
+        return ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c =>
+            (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+        );
+    }
+
+    function getNewDataList() {
+        let dlid = uuidv4();
+        return `<input class="form-control" list="${dlid}" placeholder="Type to search...">
+                <datalist id="${dlid}" class="semester" required></datalist>`
     }
 
     function addResults(optionTexts, id) {
@@ -523,8 +536,9 @@ $(function () {
         // If there's already a semester here, add a new one
         if (semesterSelect.innerHTML.trim() !== "") {
             $(semesterSelect).prop("disabled", true)
-            $(semesterSelect).after("<select class=\"custom-select semester\" required></select>")
-            semesterSelect = $(semesterSelect).next()[0]
+            $(semesterSelect).prev().prop("disabled", true)
+            $(semesterSelect).after(getNewDataList())
+            semesterSelect = $(semesterSelect).next().next()[0]
         }
 
         for (let i = 0; i < optionTexts.length; i++) {
@@ -534,7 +548,7 @@ $(function () {
             semesterSelect.appendChild(option);
         }
         //parent.frames['frBody'].document.getElementById("modal-body").appendChild(select);
-        
+
         return semesterSelect
     }
 
@@ -550,25 +564,25 @@ $(function () {
               <div class="modal-content"  style="background:#99EDC3">
               <div class="modal-header">
               <h2 class="modal-title">Results</h2>
-              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-                </button>
-                </div>
-                <div id="modal-body" class="modal-body">
-                    <div id="semesters">
-                        <div class="form-group">
-                            <select class="custom-select semester" required>
-                            </select>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+                <form id="courseForm">
+                    <div id="modal-body" class="modal-body">
+                        <div id="semesters">
+                            <div class="form-group">
+                                $(getNewDataList)
+                                </select>
+                            </div>
+                           <div class="graduation-text alert alert-success" role="alert" style="display: none">
+                                    Degwee complete! 🎓
+                           </div>
                         </div>
-                       <div class="graduation-text alert alert-success" role="alert" style="display: none">
-                                Degwee complete! 🎓
-                       </div>
                     </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" id="modalReset" class="btn btn-info" style="display:inline">Reset</button>
-                    <button type="button" id="modalNext" class="btn btn-primary" style="display:inline">Next</button>
-                </div>
+                    <div class="modal-footer">
+                        <button type="button" id="modalReset" class="btn btn-info" style="display:inline">Reset</button>
+                        <button type="submit" id="modalNext" class="btn btn-primary" style="display:inline">Next</button>
+                    </div>
+                </form>
               </div>
               </div>
             </div>
@@ -579,7 +593,8 @@ $(function () {
         div.innerHTML = html;
 
         // Get the modal
-        top.modal = document.getElementById("exampleModal");
+        top.modal = document.getElementById('exampleModal');
+        top.modalController = new bootstrap.Modal(top.modal, {})
 
         // When the user clicks anywhere outside of the modal, close it
         window.onclick = function (event) {
@@ -588,16 +603,21 @@ $(function () {
             }
         }
 
-        $("#modalNext").click((e) => showPossibleSemesters())
+        let modalNext = $("#modalNext");
+        // modalNext.click((e) => showPossibleSemesters())
         $("#modalReset").click(function(e) {
             top.customRules = JSON.parse(JSON.stringify(top.resetRules))
-
             $(top.modal).find("#modalNext").prop("disabled", false)
-            $(top.modal).find("#semesters").find(".form-group")[0].innerHTML = `<select class="custom-select semester" required></select>`
+            $(top.modal).find("#semesters").find(".form-group")[0].innerHTML = getNewDataList()
             $(top.modal).find(".graduation-text").hide()
 
             addResultsForRules(top.customRules, [])
         })
+
+        $("#courseForm").submit(function (e) {
+            e.preventDefault();
+            showPossibleSemesters();
+        });
     }
 
     function addResultsForRules(customRules, semesters) {
@@ -618,13 +638,13 @@ $(function () {
         }
         console.log(top.customRules)
         let semesters = []
-        let semesterSelectValue = $(getLatestSemesterSelect()).val()
+        let semesterSelectValue = $(getLatestSemesterSelect()).prev().val()
         console.log(semesterSelectValue)
         if (semesterSelectValue) {
             semesters = semesterSelectValue.split(",");
         }
 
         addResultsForRules(customRules, semesters);
-        $(top.modal).modal()
+        top.modalController.show()
     }
 })
