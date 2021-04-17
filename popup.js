@@ -566,6 +566,7 @@ $(function () {
                     </div>
                 </div>
                 <div class="modal-footer">
+                    <button type="button" id="modalReset" class="btn btn-info" style="display:inline">Reset</button>
                     <button type="button" id="modalNext" class="btn btn-primary" style="display:inline">Next</button>
                 </div>
               </div>
@@ -588,6 +589,24 @@ $(function () {
         }
 
         $("#modalNext").click((e) => showPossibleSemesters())
+        $("#modalReset").click(function(e) {
+            top.customRules = JSON.parse(JSON.stringify(top.resetRules))
+
+            $(top.modal).find("#modalNext").prop("disabled", false)
+            $(top.modal).find("#semesters").find(".form-group")[0].innerHTML = `<select class="custom-select semester" required></select>`
+            $(top.modal).find(".graduation-text").hide()
+
+            addResultsForRules(top.customRules, [])
+        })
+    }
+
+    function addResultsForRules(customRules, semesters) {
+        let semData = generateSemOptions(customRules, semesters);
+        try {
+            addResults(semData, "semResult")
+        } catch (e) {
+            console.log(e)
+        }
     }
 
     function showPossibleSemesters(customRules) {
@@ -595,6 +614,7 @@ $(function () {
             customRules = top.customRules;
         } else {
             top.customRules = customRules;
+            top.resetRules = JSON.parse(JSON.stringify(customRules))
         }
         console.log(top.customRules)
         let semesters = []
@@ -604,12 +624,7 @@ $(function () {
             semesters = semesterSelectValue.split(",");
         }
 
-        let semData = generateSemOptions(customRules, semesters);
-        try {
-            addResults(semData, "semResult")
-        } catch (e) {
-            console.log(e)
-        }
+        addResultsForRules(customRules, semesters);
         $(top.modal).modal()
     }
 })
