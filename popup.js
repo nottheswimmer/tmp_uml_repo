@@ -1,8 +1,9 @@
 $(function () {
+    top.customRules = null;
     let debug = true;
 
     //global var for modal to call outside
-    var modal = null;
+    top.modal = null;
 
     /**
      * Instructions for usage:
@@ -36,8 +37,8 @@ $(function () {
         }
         if (window.name === "frLeft") {
             addButton(`Generate possible semesters`, getDegreeInfo, null, "genPossible")
-            addNumberField('Min courses/semester', 'minCourses', 4)
-            addNumberField('Max courses/semester', 'maxCourses', 4);
+            // addNumberField('Min courses/semester', 'minCourses', 4)
+            // addNumberField('Max courses/semester', 'maxCourses', 4);
         }
     }
 
@@ -90,8 +91,16 @@ $(function () {
             "dataType": "xml"
         };
 
+        // TODO: Make this all less jank
+        $(".loader").fadeIn()
+        $("#genPossible").prop("disabled", true)
+        $(top.modal).find("#modalNext").prop("disabled", false)
+        $(top.modal).find("#semesters").find(".form-group")[0].innerHTML = `<select class="custom-select semester" required></select>`
+        $(top.modal).find(".graduation-text").hide()
         $.ajax(settings).done(function (data) {
-            showPossibleSemesters(visit(data))
+            showPossibleSemesters(visit(data));
+            $(".loader").fadeOut()
+            $("#genPossible").prop("disabled", false)
         });
     }
 
@@ -375,10 +384,12 @@ $(function () {
     }
 
     /** Generating semesters **/
-    function generateSemOptions(rules, max_classes, min_classes, previous_planned_semester) {
+    function generateSemOptions(rules, previous_planned_semester) {
         var prvOptions, prvOptionsIdx, prvOption, ruleIdx, rule, classOptions, classOptionsIdx, optionIdx, option;
-        max_classes = max_classes === void 0 ? parseInt($("#maxCourses")[0].value) : max_classes;
-        min_classes = min_classes === void 0 ? parseInt($("#minCourses")[0].value) : min_classes;
+        // max_classes = max_classes === void 0 ? parseInt($("#maxCourses")[0].value) : max_classes;
+        // min_classes = min_classes === void 0 ? parseInt($("#minCourses")[0].value) : min_classes;
+        let min_classes = 1;
+        let max_classes = 4;
         previous_planned_semester = previous_planned_semester === void [] ? [] : previous_planned_semester;
 
 
@@ -464,6 +475,7 @@ $(function () {
         button.id = id
         button.setAttribute("data-toggle", "modal")
         button.setAttribute("data-target", "#exampleModal")
+        button.setAttribute("class", "btn btn-outline-info")
         if (document.getElementById(id)) {
             return
         }
@@ -471,6 +483,8 @@ $(function () {
         button.innerHTML = text
         button.onclick = onclick
         Object.keys(cssObj).forEach(key => btnStyle[key] = cssObj[key])
+        $(button).after(`<div class='loader'></div>`)
+        $(button).next().hide()
         return button
     }
 
@@ -492,19 +506,36 @@ $(function () {
         document.body.appendChild(numberField)
     }
 
+    function getLatestSemesterSelect() {
+        let semesters = $(top.modal).find("#semesters").find(".semester");
+        return semesters[semesters.length-1];
+    }
+
     function addResults(optionTexts, id) {
-        $("#" + id).remove();
-        let select = parent.frames['frBody'].document.getElementById("menu");
-        //select.id = id;
+        if (optionTexts.length === 0) {
+            $(top.modal).find("#modalNext").prop("disabled", "true")
+            $(top.modal).find(".graduation-text").show()
+            return
+        }
+
+        let semesterSelect = getLatestSemesterSelect();
+
+        // If there's already a semester here, add a new one
+        if (semesterSelect.innerHTML.trim() !== "") {
+            $(semesterSelect).prop("disabled", true)
+            $(semesterSelect).after("<select class=\"custom-select semester\" required></select>")
+            semesterSelect = $(semesterSelect).next()[0]
+        }
+
         for (let i = 0; i < optionTexts.length; i++) {
-            var option = document.createElement("a");
-            option.innerHTML = optionTexts[i].join();
-            option.setAttribute("class", "dropdown-item");
-            select.appendChild(option);
+            var option = document.createElement("option");
+            option.innerText = optionTexts[i].join();
+            option.value = optionTexts[i].join();
+            semesterSelect.appendChild(option);
         }
         //parent.frames['frBody'].document.getElementById("modal-body").appendChild(select);
         
-        return select
+        return semesterSelect
     }
 
     function addModal() {
@@ -524,15 +555,18 @@ $(function () {
                 </button>
                 </div>
                 <div id="modal-body" class="modal-body">
-                    <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                    Dropdown button
-                    </button>
-                    <div id="menu" class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                    <div id="semesters">
+                        <div class="form-group">
+                            <select class="custom-select semester" required>
+                            </select>
+                        </div>
+                       <div class="graduation-text alert alert-success" role="alert" style="display: none">
+                                Degwee complete! 🎓
+                       </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <p style="display:inline">min classes: 3, max classes: 4</p>
-                    <button type="button" class="btn btn-primary" style="display:inline">Next</button>
+                    <button type="button" id="modalNext" class="btn btn-primary" style="display:inline">Next</button>
                 </div>
               </div>
               </div>
@@ -544,23 +578,38 @@ $(function () {
         div.innerHTML = html;
 
         // Get the modal
-        modal = document.getElementById("exampleModal");
+        top.modal = document.getElementById("exampleModal");
 
         // When the user clicks anywhere outside of the modal, close it
         window.onclick = function (event) {
-            if (event.target == modal) {
-                modal.style.display = "none";
+            if (event.target == top.modal) {
+                top.modal.style.display = "none";
             }
         }
+
+        $("#modalNext").click((e) => showPossibleSemesters())
     }
 
-    function showPossibleSemesters(possibleSemesterData) {
-        /** Unfinished, currently just alerts **/
-        let semData = generateSemOptions(possibleSemesterData);
-        if (window.name === "frLeft") {
-            addResults(semData, "semResult")
+    function showPossibleSemesters(customRules) {
+        if (!customRules) {
+            customRules = top.customRules;
+        } else {
+            top.customRules = customRules;
         }
-        modal = parent.frames['frBody'].document.getElementById("exampleModal");
-        $(modal).modal()
+        console.log(top.customRules)
+        let semesters = []
+        let semesterSelectValue = $(getLatestSemesterSelect()).val()
+        console.log(semesterSelectValue)
+        if (semesterSelectValue) {
+            semesters = semesterSelectValue.split(",");
+        }
+
+        let semData = generateSemOptions(customRules, semesters);
+        try {
+            addResults(semData, "semResult")
+        } catch (e) {
+            console.log(e)
+        }
+        $(top.modal).modal()
     }
 })

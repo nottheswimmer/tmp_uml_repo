@@ -18,7 +18,8 @@
         "popup.js"
       ],
       "css": [
-        "vendor/bootstrap-4.3.1-dist/css/bootstrap.min.css"
+        "vendor/bootstrap-4.3.1-dist/css/bootstrap.min.css",
+        "popup.css"
       ],
       "run_at": "document_start",
       "all_frames": true
