@@ -4,7 +4,7 @@
   "description": "This extension will allow a user to visualize their degree path on DegreeWorks",
   "version": "1.0",
   "browser_action": {
-    "default_icon": "dgw.png",
+    "default_icon": "icon.png",
     "default_popup": "popup.html"
   },
   "content_scripts": [
@@ -15,24 +15,15 @@
       "js": [
         "vendor/jquery-2.2.4.min.js",
         "vendor/bootstrap-5.0.0-beta3-dist/js/bootstrap.bundle.min.js",
-        "popup.js"
+        "embed.js"
       ],
       "css": [
         "vendor/bootstrap-5.0.0-beta3-dist/css/bootstrap.min.css",
-        "popup.css"
+        "embed.css"
       ],
       "run_at": "document_start",
       "all_frames": true
     }
   ],
-  "commands": {
-    "_execute_browser_action": {
-      "suggested_key": {
-        "default": "Ctrl+Shift+F",
-        "mac": "Command+Shift+F"
-      },
-      "description": "Opens html"
-    }
-  },
   "permissions": []
 }
