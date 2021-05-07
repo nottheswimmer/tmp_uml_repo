@@ -75,7 +75,7 @@ $(function () {
             addModal();
         }
         if (window.name === "frLeft") {
-            addButton(`Generate possible semesters`, getDegreeInfo, null, "genPossible")
+            let button = addButton(`DegweeWorks Planner`, getDegreeInfo, null, "genPossible")
             // addNumberField('Min courses/semester', 'minCourses', 4)
             // addNumberField('Max courses/semester', 'maxCourses', 4);
         }
@@ -757,7 +757,7 @@ $(function () {
               <!-- Modal content -->
               <div class="modal-content"  style="background:#99EDC3">
               <div class="modal-header">
-              <h2 class="modal-title">Planner</h2>
+              <h2 class="modal-title">DegweeWorks Planner</h2>
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
               </div>
                 <form id="courseForm">
