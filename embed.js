@@ -682,7 +682,7 @@ $(function () {
                             }
                         }
                     }
-                    course += ": " + courseObj['name']
+                    course = courseObj['Credit Hours'].substring(1, courseObj['Credit Hours'].length-1) + " Credit Hour(s) | " + courseObj['name']
                 }
                 subtitledOptionTexts.push(course)
             }
