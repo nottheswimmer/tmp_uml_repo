@@ -790,14 +790,11 @@ $(function () {
 
         // Get the modal
         top.modal = document.getElementById('exampleModal');
-        top.modalController = new bootstrap.Modal(top.modal, {})
-
-        // When the user clicks anywhere outside of the modal, close it
-        window.onclick = function (event) {
-            if (event.target == top.modal) {
-                top.modal.style.display = "none";
-            }
-        }
+        top.modalController = new bootstrap.Modal(top.modal, {
+            // Prevent accidental closings (especially prevalent when dragging mouse)
+            // keyboard: false,
+            backdrop: 'static'
+        })
 
         $("#modalReset").click(function (e) {
             top.semesterNum = 0;
