@@ -1,5 +1,50 @@
 $(function () {
-    top.customRules = null;
+    let courses_url;
+    try {
+        courses_url = browser.runtime.getURL("courses.json")
+    } catch (e) {
+        courses_url = chrome.runtime.getURL("courses.json")
+    }
+
+    function getWindow(name, cur = window.top) {
+        for (var i = 0; i < cur.length; i++) {
+            if (cur[i].name == name) {
+                return cur[i];
+            }
+            let nested = getWindow(name, cur[i])
+            if (nested !== null) {
+                return nested
+            }
+        }
+        return null;
+    }
+
+    function selectionOnInput(e) {
+        let latestSemester = $(getLatestSemesterSelect());
+        var val = latestSemester.prev()[0].value
+        var opts = latestSemester[0].childNodes;
+
+        for (var i = 0; i < opts.length; i++) {
+            if (opts[i].value === val) {
+                let alertMessage = "\n";
+                if ($(opts[i]).attr("missingPrerequisites") !== undefined) {
+                    alertMessage += "Potentially missing prerequisite(s): " + $(opts[i]).attr("missingPrerequisites") + "\n"
+                }
+                if ($(opts[i]).attr("missingCorequisites") !== undefined) {
+                    alertMessage += "Potentially missing corequisite(s): " + $(opts[i]).attr("missingCorequisites") + "\n"
+                }
+                if ($(opts[i]).attr("missingCoOrPrerequisites") !== undefined) {
+                    alertMessage += "Potentially missing pre or corequisite(s): " + $(opts[i]).attr("missingCoOrPrerequisites") + "\n"
+                }
+                if (alertMessage !== "\n") {
+                    alert("[" + opts[i].value + "]" + alertMessage)
+                }
+            }
+        }
+    }
+
+    top.customRules = [];
+    top.takenClasses = [];
     let debug = false;
 
     //global var for modal to call outside
@@ -17,7 +62,7 @@ $(function () {
         // triggers the collection of data needed to do a query for course information.
         // This isn't a listener because getting listeners to work inside iframes is hard.
         function setupWhatIfDataListener() {
-            $(top.frBodyContainer.frSelection).on("unload", fetchWhatIfData)
+            $(getWindow('frSelection')).on("unload", fetchWhatIfData)
         }
 
         // It's ran 10 times per second because again, listeners on iframes are hard.
@@ -38,7 +83,7 @@ $(function () {
     let whatIfData = {};
 
     function fetchWhatIfData() {
-        let form = $(top.frBodyContainer.frSelection.frmWhatIfTop);
+        let form = $(getWindow('frSelection').frmWhatIfTop);
         if (form[0]) {
             // Clear the object's data
             for (const prop of Object.getOwnPropertyNames(whatIfData)) {
@@ -59,10 +104,10 @@ $(function () {
     function getDegreeInfo() {
         console.log("running");
         var data = {};
-        $.each($(top.frControl.frmCallScript).serializeArray(), function () {
+        $.each($(getWindow('frControl').frmCallScript).serializeArray(), function () {
             data[this.name] = this.value;
         });
-        $.each($(top.frBodyContainer.frSelection.frmWhatIfPDF).serializeArray(), function () {
+        $.each($(getWindow('frSelection').frmWhatIfPDF).serializeArray(), function () {
             data[this.name] = this.value;
         })
 
@@ -86,6 +131,7 @@ $(function () {
 
         let loader = $(".loader");
         let genButton = $("#genPossible");
+
         try {
             loader.fadeIn()
             genButton.prop("disabled", true)
@@ -140,6 +186,12 @@ $(function () {
                 return visitElsePart(node);
             case "BooleanEvaluation":
                 return visitBooleanEvaluation(node);
+            case "Clsinfo":
+                return visitClsinfo(node);
+            case "In_progress":
+                return visitInProgress(node);
+            case "Class":
+                return visitClass(node);
             default:
                 throw `Unsupported node type?! ${nodeName} for ${node}`;
         }
@@ -153,20 +205,31 @@ $(function () {
 
     function visitAudit(audit) {
         if (debug) console.log("Audit", audit);
-        let results = [];
+        let incompleteRules = [];
         // Assumes audits contain blocks
         let blocks = $(audit).children("Block");
         $.each(blocks, function () {
-            results = [...results, ...visit(this)];
+            incompleteRules = [...incompleteRules, ...visit(this)];
         })
-        // Avoid unnecessary flattening
-        for (let resultKey in results) {
-            if (results.hasOwnProperty(resultKey))
-                while (results[resultKey].length === 1) {
-                    results[resultKey] = results[resultKey][0]
+        // Avoid unnecessary nesting
+        for (let resultKey in incompleteRules) {
+            if (incompleteRules.hasOwnProperty(resultKey))
+                while (incompleteRules[resultKey].length === 1) {
+                    incompleteRules[resultKey] = incompleteRules[resultKey][0]
                 }
         }
-        return results;
+
+        let completeOrInProgressCourses = [];
+        let clsinfos = $(audit).children("Clsinfo")
+        $.each(clsinfos, function () {
+            completeOrInProgressCourses = [...completeOrInProgressCourses, ...visit(this)];
+        })
+        let inprogresses = $(audit).children("In_progress")
+        $.each(inprogresses, function () {
+            completeOrInProgressCourses = [...completeOrInProgressCourses, ...visit(this)];
+        })
+
+        return [incompleteRules, completeOrInProgressCourses];
     }
 
     function visitBlock(block) {
@@ -292,6 +355,26 @@ $(function () {
         return results;
     }
 
+    function visitClsinfo(clsinfo) {
+        if (debug) console.log("Clsinfo", clsinfo);
+        let results = [];
+        let courses = $(clsinfo).children("Class");
+        $.each(courses, function () {
+            results = [...results, ...visit(this)];
+        })
+        return results
+    }
+
+    function visitInProgress(inprogress) {
+        if (debug) console.log("In_progress", inprogress);
+        let results = [];
+        let courses = $(inprogress).children("Class");
+        $.each(courses, function () {
+            results = [...results, ...visit(this)];
+        })
+        return results
+    }
+
     function visitRequirement(requirement) {
         if (debug) console.log("Requirement", requirement);
         let results = [];
@@ -358,7 +441,13 @@ $(function () {
         if (hideFromAdvice === "Yes") {
             return [];
         }
-        return [`${course.getAttribute("Disc")}-${course.getAttribute("Num")}`]
+        return [`${course.getAttribute("Disc")} ${course.getAttribute("Num")}`]
+    }
+
+    function visitClass(course) {
+        if (course.getAttribute("Passed") === "Y")
+            return [`${course.getAttribute("Discipline")} ${course.getAttribute("Number")}`]
+        return []
     }
 
     function visitIfPart(ifPart) {
@@ -384,7 +473,7 @@ $(function () {
     }
 
     /** Generating semesters **/
-    function generateSemOptions(rules, previous_planned_semester) {
+    function generateSemOptions(rules, previous_planned_semester, courses, takenClasses) {
         var prvOptions, prvOptionsIdx, prvOption, ruleIdx, rule, classOptions, classOptionsIdx, optionIdx, option;
         // max_classes = max_classes === void 0 ? parseInt($("#maxCourses")[0].value) : max_classes;
         // min_classes = min_classes === void 0 ? parseInt($("#minCourses")[0].value) : min_classes;
@@ -439,7 +528,7 @@ $(function () {
                     // ... and the courses that can be added from them
                     for (classOptionsIdx = 0; classOptionsIdx < classOptions.length; classOptionsIdx++) {
                         course = classOptions[classOptionsIdx];
-
+                        let courseObj = courses[course];
                         if (!(prev_courses.indexOf(course) >= 0) || course.includes("@")) {
                             new_courses = [...prev_courses, course];
                             new_courses.sort();
@@ -523,12 +612,20 @@ $(function () {
                 <datalist id="${dlid}" class="semester" required></datalist>`
     }
 
-    function addResults(optionTexts, id) {
+    function addResults(optionTexts, id, courses, semesters, takenClasses) {
         if (optionTexts.length === 0) {
             $(top.modal).find("#modalNext").prop("disabled", "true")
             $(top.modal).find(".graduation-text").show()
             return
         }
+
+        let allPlannedCourses = [];
+        let allSemesters = $(top.modal).find("#semesters").find(".semester");
+        allSemesters.each(function (i) {
+            let sem = allSemesters[i];
+            semCourses = $(sem).prev().val().split(",");
+            allPlannedCourses = [...allPlannedCourses, ...semCourses];
+        })
 
         let semesterSelect = getLatestSemesterSelect();
 
@@ -542,11 +639,99 @@ $(function () {
 
         for (let i = 0; i < optionTexts.length; i++) {
             var option = document.createElement("option");
-            option.innerText = optionTexts[i].join();
+
+
+            let subtitledOptionTexts = [];
+            let missingPrerequisites = [];
+            let missingCorequisites = [];
+            let missingCoOrPrerequisites = [];
+            for (let j = 0; j < optionTexts[i].length; j++) {
+                let course = optionTexts[i][j];
+                let courseObj = courses[course];
+                if (courseObj !== undefined) {
+                    let prereqs = courseObj["Prerequisite(s)"]
+                    if (prereqs !== undefined) {
+                        for (let k = 0; k < prereqs.length; k++) {
+                            let prereq = prereqs[k];
+                            if (takenClasses.indexOf(prereq) === -1
+                                && allPlannedCourses.indexOf(prereq) === -1
+                                && missingPrerequisites.indexOf(prereq) === -1) {
+                                missingPrerequisites.push(prereq)
+                            }
+                        }
+                    }
+                    let coreqs = courseObj["Corequisites(s)"]
+                    if (coreqs !== undefined) {
+                        for (let k = 0; k < coreqs.length; k++) {
+                            let coreq = coreqs[k];
+                            if (takenClasses.indexOf(coreq) === -1
+                                && allPlannedCourses.indexOf(coreq) === -1
+                                && missingCorequisites.indexOf(coreq) === -1) {
+                                missingCorequisites.push(coreq)
+                            }
+                        }
+                    }
+                    let coOrPreReqs = courseObj["Pre- or Corequisite(s)"]
+                    if (coOrPreReqs !== undefined) {
+                        for (let k = 0; k < coOrPreReqs.length; k++) {
+                            let coOrPreReq = coOrPreReqs[k];
+                            if (takenClasses.indexOf(coOrPreReq) === -1
+                                && allPlannedCourses.indexOf(coOrPreReq) === -1
+                                && missingCoOrPrerequisites.indexOf(coOrPreReq) === -1) {
+                                missingCoOrPrerequisites.push(coOrPreReq)
+                            }
+                        }
+                    }
+                    course += ": " + courseObj['name']
+                }
+                subtitledOptionTexts.push(course)
+            }
+
+
+            option.innerText = subtitledOptionTexts.join();
+            if (missingPrerequisites.length > 0) {
+                option.innerText = "*" + option.innerText;
+                option.setAttribute("missingPrerequisites", missingPrerequisites.join())
+            }
+            if (missingCorequisites.length > 0) {
+                if (!option.innerText[0] === "*")
+                    option.innerText = "*" + option.innerText;
+                option.setAttribute("missingCorequisites", missingCorequisites.join())
+            }
+            if (missingCoOrPrerequisites.length > 0) {
+                if (!option.innerText[0] === "*")
+                    option.innerText = "*" + option.innerText;
+                option.setAttribute("missingCoOrPrerequisites", missingCoOrPrerequisites.join())
+            }
             option.value = optionTexts[i].join();
             semesterSelect.appendChild(option);
         }
         //parent.frames['frBody'].document.getElementById("modal-body").appendChild(select);
+
+        let $options = $(semesterSelect).children()
+        var sortList = Array.prototype.sort.bind($options)
+        sortList(function (a, b) {
+            var aText = a.innerText;
+            var bText = b.innerText;
+
+            if (aText[0] === "*" && bText[0] !== "*")
+                return 1;
+
+            if (aText[0] !== "*" && bText[0] === "*")
+                return -1;
+
+            if (aText < bText) {
+                return -1;
+            }
+            if (aText > bText) {
+                return 1;
+            }
+            return 0;
+        });
+        $(semesterSelect).append($options)
+
+
+        $(semesterSelect).prev().change(selectionOnInput)
 
         return semesterSelect
     }
@@ -610,7 +795,7 @@ $(function () {
             $(top.modal).find("#semesters").find(".form-group")[0].innerHTML = getNewDataList()
             $(top.modal).find(".graduation-text").hide()
 
-            addResultsForRules(top.customRules, [])
+            addResultsForRules(top.customRules, [], top.takenClasses)
         })
 
         $("#courseForm").submit(function (e) {
@@ -619,21 +804,24 @@ $(function () {
         });
     }
 
-    function addResultsForRules(customRules, semesters) {
-        let semData = generateSemOptions(customRules, semesters);
-        try {
-            addResults(semData, "semResult")
-        } catch (e) {
-            console.log(e)
-        }
+    function addResultsForRules(customRules, semesters, takenClasses) {
+        $.getJSON(courses_url).then(function (data) {
+            return data
+        }).then(function (courses) {
+            let semData = generateSemOptions(customRules, semesters, courses, takenClasses);
+            try {
+                addResults(semData, "semResult", courses, semesters, takenClasses)
+            } catch (e) {
+                console.log(e)
+            }
+        })
     }
 
-    function showPossibleSemesters(customRules) {
-        if (!customRules) {
-            customRules = top.customRules;
-        } else {
-            top.customRules = customRules;
-            top.resetRules = JSON.parse(JSON.stringify(customRules))
+    function showPossibleSemesters(customRulesAndTakenClasses) {
+        if (customRulesAndTakenClasses) {
+            top.customRules = customRulesAndTakenClasses[0];
+            top.takenClasses = customRulesAndTakenClasses[1];
+            top.resetRules = JSON.parse(JSON.stringify(top.customRules))
         }
         if (debug) console.log(top.customRules)
         let semesters = []
@@ -643,7 +831,7 @@ $(function () {
             semesters = semesterSelectValue.split(",");
         }
 
-        addResultsForRules(customRules, semesters);
+        addResultsForRules(top.customRules, semesters, top.takenClasses);
         top.modalController.show()
     }
 })
