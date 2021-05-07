@@ -610,7 +610,7 @@ $(function () {
 
     function getNewDataList(newSemester = false) {
         let dlid = uuidv4();
-        return `${newSemester ? '<hr/>' : ''}<input class="form-control${newSemester ? ' newSem' : ''}" list="${dlid}" placeholder="Type to search...">
+        return `${newSemester ? '<hr/>' : ''}<input class="form-control${newSemester ? ' newSem' : ''}" list="${dlid}" semNum="${top.semesterNum}" placeholder="Type to search...">
                 <datalist id="${dlid}" class="semester" required semNum="${top.semesterNum}"></datalist>`
     }
 
@@ -622,12 +622,17 @@ $(function () {
             return
         }
 
-        let allPlannedCourses = [];
+        let prevSemesterCourses = [];
+        let curSemesterCourses = [];
         let allSemesters = $(top.modal).find("#semesters").find(".semester");
         allSemesters.each(function (i) {
             let sem = allSemesters[i];
             semCourses = $(sem).prev("input").val().split(",");
-            allPlannedCourses = [...allPlannedCourses, ...semCourses];
+            if ($(sem).attr("semNum") == top.semesterNum) {
+                curSemesterCourses = [...curSemesterCourses, ...semCourses];
+            } else {
+                prevSemesterCourses = [...prevSemesterCourses, ...semCourses];
+            }
         })
 
         let semesterSelect = getLatestSemesterSelect();
@@ -659,7 +664,7 @@ $(function () {
                         for (let k = 0; k < prereqs.length; k++) {
                             let prereq = prereqs[k];
                             if (takenClasses.indexOf(prereq) === -1
-                                && allPlannedCourses.indexOf(prereq) === -1
+                                && prevSemesterCourses.indexOf(prereq) === -1
                                 && missingPrerequisites.indexOf(prereq) === -1) {
                                 missingPrerequisites.push(prereq)
                             }
@@ -669,8 +674,7 @@ $(function () {
                     if (coreqs !== undefined) {
                         for (let k = 0; k < coreqs.length; k++) {
                             let coreq = coreqs[k];
-                            if (takenClasses.indexOf(coreq) === -1
-                                && allPlannedCourses.indexOf(coreq) === -1
+                            if (curSemesterCourses.indexOf(coreq) === -1
                                 && missingCorequisites.indexOf(coreq) === -1) {
                                 missingCorequisites.push(coreq)
                             }
@@ -681,7 +685,8 @@ $(function () {
                         for (let k = 0; k < coOrPreReqs.length; k++) {
                             let coOrPreReq = coOrPreReqs[k];
                             if (takenClasses.indexOf(coOrPreReq) === -1
-                                && allPlannedCourses.indexOf(coOrPreReq) === -1
+                                && prevSemesterCourses.indexOf(coOrPreReq) === -1
+                                && curSemesterCourses.indexOf(coOrPreReq) === -1
                                 && missingCoOrPrerequisites.indexOf(coOrPreReq) === -1) {
                                 missingCoOrPrerequisites.push(coOrPreReq)
                             }
@@ -752,7 +757,7 @@ $(function () {
               <!-- Modal content -->
               <div class="modal-content"  style="background:#99EDC3">
               <div class="modal-header">
-              <h2 class="modal-title">Results</h2>
+              <h2 class="modal-title">Planner</h2>
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
               </div>
                 <form id="courseForm">
