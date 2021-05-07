@@ -39,6 +39,25 @@
     border-color: #00703C;
 }
 
-.newSem {
-}
+/* Limit printing to 1 page */
+@media print {
+    .modal-content {
+        background-color: white;
+        height: 100%;
+        width: 100%;
+        position: fixed;
+        top: 0;
+        left: 0;
+        margin: 0;
+        padding: 15px;
+        font-size: 14px;
+        line-height: 18px;
+    }
 
+    html, body {
+        height:100%;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden;
+    }
+}

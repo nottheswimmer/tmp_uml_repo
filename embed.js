@@ -773,6 +773,7 @@ $(function () {
                         </div>
                     </div>
                     <div class="modal-footer">
+                        <button type="button" id="modalPrint" class="btn btn-dark" style="display:inline" onclick="window.print()">Print</button>
                         <button type="button" id="modalReset" class="btn btn-info" style="display:inline">Reset</button>
                         <button type="button" id="modalNextSemester" class="btn btn-secondary" style="display:inline">Next Semester</button>
                         <button type="submit" id="modalNext" class="btn btn-primary" style="display:inline">Add New</button>
