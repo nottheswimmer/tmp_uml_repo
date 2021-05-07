@@ -1,4 +1,3 @@
-$(function () {
     let courses_url;
     try {
         courses_url = browser.runtime.getURL("courses.json")
@@ -847,4 +846,3 @@ $(function () {
         addResultsForRules(top.customRules, semesters, top.takenClasses, newSemester);
         top.modalController.show()
     }
-})
