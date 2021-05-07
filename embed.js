@@ -21,7 +21,7 @@ $(function () {
 
     function selectionOnInput(e) {
         let latestSemester = $(getLatestSemesterSelect());
-        var val = latestSemester.prev()[0].value
+        var val = latestSemester.prev("input")[0].value
         var opts = latestSemester[0].childNodes;
 
         for (var i = 0; i < opts.length; i++) {
@@ -45,6 +45,7 @@ $(function () {
 
     top.customRules = [];
     top.takenClasses = [];
+    top.semesterNum = 0;
     let debug = false;
 
     //global var for modal to call outside
@@ -136,6 +137,7 @@ $(function () {
             loader.fadeIn()
             genButton.prop("disabled", true)
             $(top.modal).find("#modalNext").prop("disabled", false)
+            $(top.modal).find("#modalNextSemester").prop("disabled", false)
             $(top.modal).find("#semesters").find(".form-group")[0].innerHTML = getNewDataList()
             $(top.modal).find(".graduation-text").hide()
             $.ajax(settings).done(function (data) {
@@ -606,15 +608,16 @@ $(function () {
         );
     }
 
-    function getNewDataList() {
+    function getNewDataList(newSemester = false) {
         let dlid = uuidv4();
-        return `<input class="form-control" list="${dlid}" placeholder="Type to search...">
-                <datalist id="${dlid}" class="semester" required></datalist>`
+        return `${newSemester ? '<hr/>' : ''}<input class="form-control${newSemester ? ' newSem' : ''}" list="${dlid}" placeholder="Type to search...">
+                <datalist id="${dlid}" class="semester" required semNum="${top.semesterNum}"></datalist>`
     }
 
-    function addResults(optionTexts, id, courses, semesters, takenClasses) {
+    function addResults(optionTexts, id, courses, semesters, takenClasses, newSemester = false) {
         if (optionTexts.length === 0) {
             $(top.modal).find("#modalNext").prop("disabled", "true")
+            $(top.modal).find("#modalNextSemester").prop("disabled", "true")
             $(top.modal).find(".graduation-text").show()
             return
         }
@@ -623,7 +626,7 @@ $(function () {
         let allSemesters = $(top.modal).find("#semesters").find(".semester");
         allSemesters.each(function (i) {
             let sem = allSemesters[i];
-            semCourses = $(sem).prev().val().split(",");
+            semCourses = $(sem).prev("input").val().split(",");
             allPlannedCourses = [...allPlannedCourses, ...semCourses];
         })
 
@@ -632,9 +635,11 @@ $(function () {
         // If there's already a semester here, add a new one
         if (semesterSelect.innerHTML.trim() !== "") {
             $(semesterSelect).prop("disabled", true)
-            $(semesterSelect).prev().prop("disabled", true)
-            $(semesterSelect).after(getNewDataList())
+            $(semesterSelect).prev("input").prop("disabled", true)
+            $(semesterSelect).after(getNewDataList(newSemester))
             semesterSelect = $(semesterSelect).next().next()[0]
+            if (newSemester)
+                semesterSelect = $(semesterSelect).next()[0]
         }
 
         for (let i = 0; i < optionTexts.length; i++) {
@@ -682,7 +687,7 @@ $(function () {
                             }
                         }
                     }
-                    course = courseObj['Credit Hours'].substring(1, courseObj['Credit Hours'].length-1) + " Credit Hour(s) | " + courseObj['name']
+                    course = courseObj['Credit Hours'].substring(1, courseObj['Credit Hours'].length - 1) + " Credit Hour(s) | " + courseObj['name']
                 }
                 subtitledOptionTexts.push(course)
             }
@@ -731,7 +736,7 @@ $(function () {
         $(semesterSelect).append($options)
 
 
-        $(semesterSelect).prev().change(selectionOnInput)
+        $(semesterSelect).prev("input").change(selectionOnInput)
 
         return semesterSelect
     }
@@ -764,7 +769,8 @@ $(function () {
                     </div>
                     <div class="modal-footer">
                         <button type="button" id="modalReset" class="btn btn-info" style="display:inline">Reset</button>
-                        <button type="submit" id="modalNext" class="btn btn-primary" style="display:inline">Next</button>
+                        <button type="button" id="modalNextSemester" class="btn btn-secondary" style="display:inline">Next Semester</button>
+                        <button type="submit" id="modalNext" class="btn btn-primary" style="display:inline">Add New</button>
                     </div>
                 </form>
               </div>
@@ -787,15 +793,19 @@ $(function () {
             }
         }
 
-        let modalNext = $("#modalNext");
-        // modalNext.click((e) => showPossibleSemesters())
         $("#modalReset").click(function (e) {
+            top.semesterNum = 0;
             top.customRules = JSON.parse(JSON.stringify(top.resetRules))
             $(top.modal).find("#modalNext").prop("disabled", false)
+            $(top.modal).find("#modalNextSemester").prop("disabled", false)
             $(top.modal).find("#semesters").find(".form-group")[0].innerHTML = getNewDataList()
             $(top.modal).find(".graduation-text").hide()
 
             addResultsForRules(top.customRules, [], top.takenClasses)
+        })
+        $("#modalNextSemester").click(function (e) {
+            top.semesterNum++;
+            showPossibleSemesters(null, true)
         })
 
         $("#courseForm").submit(function (e) {
@@ -804,20 +814,20 @@ $(function () {
         });
     }
 
-    function addResultsForRules(customRules, semesters, takenClasses) {
+    function addResultsForRules(customRules, semesters, takenClasses, newSemester = false) {
         $.getJSON(courses_url).then(function (data) {
             return data
         }).then(function (courses) {
             let semData = generateSemOptions(customRules, semesters, courses, takenClasses);
             try {
-                addResults(semData, "semResult", courses, semesters, takenClasses)
+                addResults(semData, "semResult", courses, semesters, takenClasses, newSemester)
             } catch (e) {
                 console.log(e)
             }
         })
     }
 
-    function showPossibleSemesters(customRulesAndTakenClasses) {
+    function showPossibleSemesters(customRulesAndTakenClasses, newSemester = false) {
         if (customRulesAndTakenClasses) {
             top.customRules = customRulesAndTakenClasses[0];
             top.takenClasses = customRulesAndTakenClasses[1];
@@ -825,13 +835,13 @@ $(function () {
         }
         if (debug) console.log(top.customRules)
         let semesters = []
-        let semesterSelectValue = $(getLatestSemesterSelect()).prev().val()
+        let semesterSelectValue = $(getLatestSemesterSelect()).prev("input").val()
         if (debug) console.log(semesterSelectValue)
         if (semesterSelectValue) {
             semesters = semesterSelectValue.split(",");
         }
 
-        addResultsForRules(top.customRules, semesters, top.takenClasses);
+        addResultsForRules(top.customRules, semesters, top.takenClasses, newSemester);
         top.modalController.show()
     }
 })
